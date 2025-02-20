@@ -39,49 +39,106 @@ O Aegis AI Security é um sistema de segurança inteligente que utiliza intelig�
   - Categorização por severidade
   - Confirmação de visualização
 
-## 🔧 Arquitetura
+## 🔧 Arquitetura (DDD Adaptado ao Django)
 
 ```
 aegis-ai-security/
-├── backend/                      # Backend Django
-│   ├── core/                     # Aplicação principal
-│   ├── api/                      # APIs REST
-│   ├── analytics/                # Serviços de analytics
-│   ├── notifications/            # Sistema de notificações
-│   └── ml_engine/                # Motor de processamento ML
-│       ├── behavior_detection/   # Detecção de comportamentos
-│       ├── motion_tracking/      # Rastreamento de movimento
-│       └── zone_monitoring/      # Monitoramento de zonas
-├── frontend/                     # Frontend React
+├── backend/                               # Backend Django com DRF
+│   ├── aegis_project/                     # Configuração do projeto
+│   │   ├── settings/                      # Configurações por ambiente
+│   │   ├── urls.py                        # Rotas principais
+│   │   └── asgi.py                        # Configuração ASGI p/ websockets
+│   │
+│   ├── core/                              # Domínio Core (Shared Kernel)
+│   │   ├── domain/                        # Conceitos compartilhados
+│   │   │   ├── value_objects/             # Objetos de valor
+│   │   │   └── events/                    # Eventos de domínio 
+│   │
+│   ├── security/                          # Bounded Context: Segurança
+│   │   ├── domain/                        # Camada de Domínio
+│   │   │   ├── models/                    # Entidades e agregados
+│   │   │   ├── repositories/              # Interfaces de repositório 
+│   │   │   ├── services/                  # Serviços de domínio
+│   │   │   └── events/                    # Eventos específicos
+│   │   │
+│   │   ├── application/                   # Camada de Aplicação
+│   │   │   ├── dtos/                      # Objetos de transferência
+│   │   │   ├── use_cases/                 # Casos de uso
+│   │   │   └── commands/                  # Comandos
+│   │   │
+│   │   ├── infrastructure/                # Camada de Infraestrutura
+│   │   │   ├── repositories/              # Implementações de repositório
+│   │   │   ├── serializers/               # Serializers do DRF
+│   │   │   └── adapters/                  # Adaptadores externos
+│   │   │
+│   │   └── interfaces/                    # Camada de Interface
+│   │       ├── api/                       # APIs REST (ViewSets)
+│   │       ├── consumers/                 # Websocket consumers
+│   │       └── tasks/                     # Tarefas Celery
+│   │
+│   ├── analytics/                         # Bounded Context: Analytics
+│   │   ├── domain/                        # (estrutura similar)
+│   │   ├── application/                   # (estrutura similar)
+│   │   ├── infrastructure/                # (estrutura similar)
+│   │   └── interfaces/                    # (estrutura similar)
+│   │
+│   ├── detection/                         # Bounded Context: Detecção ML
+│   │   ├── domain/                        # (estrutura similar)
+│   │   ├── application/                   # (estrutura similar)
+│   │   ├── infrastructure/                # (estrutura similar)
+│   │   │   ├── ml_engine/                 # Motor de ML
+│   │   │   │   ├── behavior_detection/    # Detecção de comportamentos
+│   │   │   │   ├── motion_tracking/       # Rastreamento de movimento
+│   │   │   │   └── zone_monitoring/       # Monitoramento de zonas
+│   │   └── interfaces/                    # (estrutura similar)
+│   │
+│   └── notifications/                     # Bounded Context: Notificações
+│       └── (estrutura similar)
+│
+├── frontend/                              # Frontend React
 │   ├── src/
-│   │   ├── components/           # Componentes reutilizáveis
-│   │   ├── pages/                # Páginas da aplicação
-│   │   ├── contexts/             # Context API
-│   │   └── services/             # Serviços e APIs
-├── ml_models/                    # Modelos treinados
-│   ├── behavior_classifier/      # Classificador de comportamentos
-│   └── object_detector/          # Detector de objetos
-└── docker/                       # Configuração Docker
+│   │   ├── components/                    # Componentes reutilizáveis
+│   │   ├── pages/                         # Páginas da aplicação
+│   │   ├── contexts/                      # Context API
+│   │   └── services/                      # Serviços e APIs
+├── ml_models/                             # Modelos treinados
+│   ├── behavior_classifier/               # Classificador de comportamentos
+│   └── object_detector/                   # Detector de objetos
+└── docker/                                # Configuração Docker
 ```
 
-## 🔍 Fluxo de Funcionamento
+## 🔍 Fluxo de Funcionamento (Seguindo DDD)
 
-1. Câmeras enviam streams de vídeo para o servidor
-2. Frames são processados pelo motor de ML
-3. Comportamentos e objetos são detectados e classificados
-4. Sistema verifica regras de alerta configuradas
-5. Se um incidente for detectado, alertas são gerados
-6. Notificações são enviadas aos usuários configurados
-7. O incidente é registrado para análise posterior
+1. **Camada de Interface**:
+   - Câmeras enviam streams de vídeo através de adaptadores de entrada
+   - Controllers recebem os dados e encaminham para os casos de uso
 
-## 🛠️ Tecnologias Utilizadas
+2. **Camada de Aplicação**:
+   - Casos de uso coordenam o fluxo da aplicação
+   - Comandos e consultas são processados
+   
+3. **Camada de Domínio**:
+   - Serviços de domínio processam streams de vídeo
+   - Comportamentos e objetos são detectados e classificados
+   - Eventos de domínio são disparados ao detectar incidentes
+   - Regras de negócio são aplicadas para verificação de alertas
+
+4. **Camada de Infraestrutura**:
+   - Motor ML processa frames de vídeo
+   - Repositórios persistem incidentes e configurações
+   - Adaptadores de notificação enviam alertas
+   - Event bus distribui eventos para outros bounded contexts
+
+## 🛠️ Tecnologias e Padrões Utilizados
 
 ### Backend
 - **Django**: Framework web
-- **Django REST Framework**: APIs RESTful
+- **Django REST Framework (DRF)**: APIs RESTful
+- **Domain-Driven Design (DDD)**: Arquitetura adaptada ao Django
 - **Celery**: Processamento assíncrono
 - **Redis**: Cache e filas de mensagens
 - **PostgreSQL**: Banco de dados principal
+- **Django Channels**: WebSockets para comunicação em tempo real
 
 ### Frontend
 - **React**: Biblioteca UI
@@ -108,6 +165,7 @@ aegis-ai-security/
 - Node.js 14+
 - Docker e Docker Compose
 - CUDA compatível (para aceleração GPU)
+- Conhecimento de DDD e padrões de arquitetura limpa
 
 ### Configuração de Desenvolvimento
 
